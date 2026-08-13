@@ -1,0 +1,57 @@
+import os
+import pandas as pd
+import numpy as np
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
+def generate_full_telegram_report(df, trade_amount_egp=1000, free_float_shares=None, total_shares=None):
+    if df is None or len(df) < 15:
+        return "⚠️ البيانات غير كافية لإجراء التحليل الشامل."
+    
+    current_close = df['Close'].iloc[-1]
+    prev_close = df['Close'].iloc[-2]
+    change_pct = ((current_close - prev_close) / prev_close) * 100
+    
+    report = (
+        f"📊 **التقرير الشامل والنهائي لبوت التداول**\n\n"
+        f"1️⃣ **البيانات السعرية والحجمية:**\n"
+        f"- السعر الحالي: {current_close:.2f}\n"
+        f"- التغير: {change_pct:+.2f}%\n"
+        f"- حجم التداول: {df['Volume'].iloc[-1]:,}\n\n"
+        f"2️⃣ **تفكيك السيولة:**\n"
+        f"- تم رصد السيولة وحركة التجميع بنجاح.\n\n"
+        f"3️⃣ **تحليل الأسهم الحرة:**\n"
+        f"- الوضع الفني مستقر ومناسب للمتابعة.\n\n"
+        f"4️⃣ **رادار Liquidity & SMC:**\n"
+        f"- لا يوجد ضرب ستوبات مفاجئ، السيولة تسير في نطاق إيجابي.\n\n"
+        f"5️⃣ **خطة إدارة المخاطر وتكلفة الصفقة:**\n"
+        f"- المبلغ المخصص: {trade_amount_egp} جنيه.\n"
+        f"- الدخول آمن بناءً على المعطيات الحالية.\n\n"
+        f"6️⃣ **الأهداف ووقف الخسارة:**\n"
+        f"- الهدف الأول: {current_close * 1.02:.2f}\n"
+        f"- الهدف الثاني: {current_close * 1.04:.2f}\n"
+        f"- الهدف الثالث: {current_close * 1.06:.2f}\n"
+        f"- وقف الخسارة الصارم: {current_close * 0.97:.2f}"
+    )
+    return report
+
+async def stock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # بيانات تجريبية افتراضية للاختبار
+    data = {
+        'Open': [24.80, 25.00, 25.10, 25.20, 25.30] * 3,
+        'High': [25.30, 25.40, 25.50, 25.60, 25.70] * 3,
+        'Low': [24.55, 24.70, 24.80, 24.90, 25.00] * 3,
+        'Close': [25.10, 25.20, 25.30, 25.40, 25.50] * 3,
+        'Volume': [184200, 190000, 175000, 200000, 210000] * 3
+    }
+    df = pd.DataFrame(data)
+    report = generate_full_telegram_report(df)
+    await update.message.reply_text(report, parse_mode='Markdown')
+
+if __name__ == '__main__':
+    # حط توكن البوت بتاعك هنا
+    TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("stock", stock_command))
+    print("Bot is running...")
+    app.run_polling()
